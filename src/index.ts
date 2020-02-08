@@ -13,8 +13,7 @@ import {
   useType,
   Vector,
 } from "@hex-engine/2d"
-
-const vec = (x = 0, y = x) => new Vector(x, y)
+import { vec } from "./helpers"
 
 type GameState = "PLACING_X" | "PLACING_O" | "X_WON" | "O_WON" | "TIE"
 type PlayerMark = "x" | "o" | " "
