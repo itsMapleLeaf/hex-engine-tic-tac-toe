@@ -2,7 +2,6 @@ import {
   Canvas,
   createRoot,
   Geometry,
-  Grid,
   Label,
   Mouse,
   Polygon,
@@ -14,74 +13,31 @@ import {
   Vector,
 } from "@hex-engine/2d"
 import { vec } from "./helpers"
-
-type GameState = "PLACING_X" | "PLACING_O" | "X_WON" | "O_WON" | "TIE"
-type PlayerMark = "x" | "o" | " "
-type GameGrid = Grid<PlayerMark>
-
-function getWinnerState(grid: GameGrid): GameState | undefined {
-  const winningStates = [
-    [vec(0, 0), vec(1, 0), vec(2, 0)],
-    [vec(0, 1), vec(1, 1), vec(2, 1)],
-    [vec(0, 2), vec(1, 2), vec(2, 2)],
-    [vec(0, 0), vec(0, 1), vec(0, 2)],
-    [vec(1, 0), vec(1, 1), vec(1, 2)],
-    [vec(2, 0), vec(2, 1), vec(2, 2)],
-    [vec(0, 0), vec(1, 1), vec(2, 2)],
-    [vec(2, 0), vec(1, 1), vec(0, 2)],
-  ]
-
-  function hasWinningLine(mark: PlayerMark) {
-    return winningStates.some((spacePositions) =>
-      spacePositions.every((position) => grid.get(position) === mark),
-    )
-  }
-
-  if (hasWinningLine("x")) return "X_WON"
-  if (hasWinningLine("o")) return "O_WON"
-  return undefined
-}
+import { TicTacToeGame } from "./TicTacToeGame"
 
 function Root() {
   useType(Root)
 
+  const game = new TicTacToeGame()
+
   const canvas = useNewComponent(() => Canvas({ backgroundColor: "white" }))
   canvas.fullscreen()
 
-  const grid: GameGrid = new Grid(3, 3, " ")
   const cellSize = new Vector(50, 50)
   const firstCellPosition = new Vector(100, 100)
 
-  let state: GameState = "PLACING_X"
-
-  for (const [rowIndex, columnIndex] of grid.contents()) {
+  for (const [rowIndex, columnIndex] of game.grid.contents()) {
     useChild(() =>
       Cell({
         size: cellSize,
         position: firstCellPosition
           .addX(cellSize.x * rowIndex)
           .addY(cellSize.y * columnIndex),
-        getContent: () => grid.get(rowIndex, columnIndex),
+
+        getContent: () => game.grid.get(rowIndex, columnIndex),
 
         onClick() {
-          switch (state) {
-            case "PLACING_X": {
-              const content = grid.get(rowIndex, columnIndex)
-              if (content === " ") {
-                grid.set(rowIndex, columnIndex, "x")
-                state = getWinnerState(grid) ?? "PLACING_O"
-              }
-              break
-            }
-            case "PLACING_O": {
-              const content = grid.get(rowIndex, columnIndex)
-              if (content === " ") {
-                grid.set(rowIndex, columnIndex, "o")
-                state = getWinnerState(grid) ?? "PLACING_X"
-              }
-              break
-            }
-          }
+          game.handleClick(vec(rowIndex, columnIndex))
         },
       }),
     )
@@ -93,7 +49,7 @@ function Root() {
   const stateLabel = useNewComponent(() => Label({ font }))
 
   useDraw((context) => {
-    switch (state) {
+    switch (game.state) {
       case "PLACING_X": {
         stateLabel.text = "X's turn"
         break
