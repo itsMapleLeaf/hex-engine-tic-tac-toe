@@ -14,7 +14,34 @@ import {
   Vector,
 } from "@hex-engine/2d"
 
+const vec = (x = 0, y = x) => new Vector(x, y)
+
 type GameState = "PLACING_X" | "PLACING_O" | "X_WON" | "O_WON" | "TIE"
+type PlayerMark = "x" | "o" | " "
+type GameGrid = Grid<PlayerMark>
+
+function getWinnerState(grid: GameGrid): GameState | undefined {
+  const winningStates = [
+    [vec(0, 0), vec(1, 0), vec(2, 0)],
+    [vec(0, 1), vec(1, 1), vec(2, 1)],
+    [vec(0, 2), vec(1, 2), vec(2, 2)],
+    [vec(0, 0), vec(0, 1), vec(0, 2)],
+    [vec(1, 0), vec(1, 1), vec(1, 2)],
+    [vec(2, 0), vec(2, 1), vec(2, 2)],
+    [vec(0, 0), vec(1, 1), vec(2, 2)],
+    [vec(2, 0), vec(1, 1), vec(0, 2)],
+  ]
+
+  function hasWinningLine(mark: PlayerMark) {
+    return winningStates.some((spacePositions) =>
+      spacePositions.every((position) => grid.get(position) === mark),
+    )
+  }
+
+  if (hasWinningLine("x")) return "X_WON"
+  if (hasWinningLine("o")) return "O_WON"
+  return undefined
+}
 
 function Root() {
   useType(Root)
@@ -22,42 +49,11 @@ function Root() {
   const canvas = useNewComponent(() => Canvas({ backgroundColor: "white" }))
   canvas.fullscreen()
 
-  const grid = new Grid(3, 3, " ")
+  const grid: GameGrid = new Grid(3, 3, " ")
   const cellSize = new Vector(50, 50)
   const firstCellPosition = new Vector(100, 100)
 
   let state: GameState = "PLACING_X"
-
-  function checkForWinCondition() {
-    for (const [rowIndex, columnIndex, value] of grid.contents()) {
-      if (value === "x" || value === "o") {
-        const up = grid.get(rowIndex - 1, columnIndex)
-        const down = grid.get(rowIndex + 1, columnIndex)
-        const left = grid.get(rowIndex, columnIndex - 1)
-        const right = grid.get(rowIndex, columnIndex + 1)
-        const upLeft = grid.get(rowIndex - 1, columnIndex - 1)
-        const upRight = grid.get(rowIndex - 1, columnIndex + 1)
-        const downLeft = grid.get(rowIndex + 1, columnIndex - 1)
-        const downRight = grid.get(rowIndex + 1, columnIndex + 1)
-        if (
-          (up === value && down === value) ||
-          (left === value && right === value) ||
-          (upLeft === value && downRight === value) ||
-          (upRight === value && downLeft === value)
-        ) {
-          state = value === "x" ? "X_WON" : "O_WON"
-        }
-      }
-    }
-    const allCells = [...grid.contents()].map(([row, column, value]) => value)
-    if (
-      allCells.every((value) => value !== " ") &&
-      state !== "X_WON" &&
-      state !== "O_WON"
-    ) {
-      state = "TIE"
-    }
-  }
 
   for (const [rowIndex, columnIndex] of grid.contents()) {
     useChild(() =>
@@ -74,7 +70,7 @@ function Root() {
               const content = grid.get(rowIndex, columnIndex)
               if (content === " ") {
                 grid.set(rowIndex, columnIndex, "x")
-                state = "PLACING_O"
+                state = getWinnerState(grid) ?? "PLACING_O"
               }
               break
             }
@@ -82,13 +78,11 @@ function Root() {
               const content = grid.get(rowIndex, columnIndex)
               if (content === " ") {
                 grid.set(rowIndex, columnIndex, "o")
-                state = "PLACING_X"
+                state = getWinnerState(grid) ?? "PLACING_X"
               }
               break
             }
           }
-
-          checkForWinCondition()
         },
       }),
     )
